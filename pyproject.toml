@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "skills-201-image-workflows"
+version = "0.1.0"
+description = "Compose local cropping and Gemini image colorization workflows with reusable skills."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["Pillow", "google-genai"]
+license = "MIT"
+authors = [{ name = "Santosh" }]
+keywords = ["skills", "images", "gemini", "colorization", "cropping"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Operating System :: OS Independent"
+]
+
+[project.optional-dependencies]
+dev = ["ruff"]
+
+[project.scripts]
+crop-images = "crop_images:main"
+colorize-images = "colorize_images:main"
+process-bw-folder = "process_bw_folder:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+py-modules = ["crop_images", "colorize_images", "process_bw_folder"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
