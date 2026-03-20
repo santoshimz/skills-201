@@ -13,6 +13,18 @@ This project demonstrates three practical layers:
 - `colorize-images`: colorize black and white images with the Gemini image API
 - `process-bw-images`: a meta-skill that chains `cropping-images` and `colorize-images`
 
+## Table of contents
+
+- [Project anatomy](#project-anatomy)
+- [Quick start](#quick-start)
+- [Before and after](#before-and-after)
+- [Example workflows](#example-workflows)
+- [Primary path](#primary-path)
+- [Skill usage](#skill-usage)
+- [Security notes](#security-notes)
+- [Run quality checks](#run-quality-checks)
+- [Reusable skills](#reusable-skills)
+
 ## Project anatomy
 
 - `.agents/skills/.../SKILL.md` explains when each skill should be used
