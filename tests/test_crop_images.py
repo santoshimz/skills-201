@@ -1,4 +1,3 @@
-import json
 import shutil
 import subprocess
 import sys
@@ -9,7 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
-FIXTURE_IMAGE = ROOT / "examples" / "ppc" / "1402" / "black and white.png"
+FIXTURE_IMAGE = ROOT / "examples" / "black and white.png"
 SCRIPT_PATH = SRC / "crop_images.py"
 
 sys.path.insert(0, str(SRC))
@@ -18,50 +17,49 @@ from crop_images import process_folder  # noqa: E402
 
 
 class CropImagesTests(unittest.TestCase):
-    def copy_examples(self, target_dir: Path) -> list[Path]:
+    def copy_examples(self, target_dir: Path, count: int = 5) -> list[Path]:
         copied_files: list[Path] = []
-        for index in range(1, 6):
+        for index in range(1, count + 1):
             destination = target_dir / f"Screenshot {index}.png"
             shutil.copy2(FIXTURE_IMAGE, destination)
             copied_files.append(destination)
-        self.assertEqual(len(copied_files), 5)
+        self.assertEqual(len(copied_files), count)
         return copied_files
 
     def test_process_folder_creates_outputs_and_deletes_sources(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             folder = Path(temp_dir)
-            original_files = self.copy_examples(folder)
+            original_files = self.copy_examples(folder, count=3)
 
-            process_folder(folder, "Jalsa", keep_originals=False)
+            written = process_folder(folder, keep_originals=False)
 
-            for index in range(1, 6):
-                self.assertTrue((folder / f"{index}.jpg").exists())
-            self.assertTrue((folder / "meta-data.json").exists())
+            self.assertEqual([path.name for path in written], [
+                "Screenshot 1-cropped.jpg",
+                "Screenshot 2-cropped.jpg",
+                "Screenshot 3-cropped.jpg",
+            ])
+            for path in written:
+                self.assertTrue(path.exists())
             for path in original_files:
                 self.assertFalse(path.exists())
-
-            metadata = json.loads((folder / "meta-data.json").read_text(encoding="utf-8"))
-            self.assertEqual(metadata["movie"], "Jalsa")
-            self.assertEqual(metadata["contributor"], "")
-            self.assertEqual(metadata["twitterId"], "")
 
     def test_process_folder_keep_originals_preserves_sources(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             folder = Path(temp_dir)
-            original_files = self.copy_examples(folder)
+            original_files = self.copy_examples(folder, count=2)
 
-            process_folder(folder, "Jalsa", keep_originals=True)
+            written = process_folder(folder, keep_originals=True)
 
-            for index in range(1, 6):
-                self.assertTrue((folder / f"{index}.jpg").exists())
-            self.assertTrue((folder / "meta-data.json").exists())
+            self.assertEqual(len(written), 2)
+            for path in written:
+                self.assertTrue(path.exists())
             for path in original_files:
                 self.assertTrue(path.exists())
 
     def test_cli_script_runs_successfully(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             folder = Path(temp_dir)
-            self.copy_examples(folder)
+            self.copy_examples(folder, count=3)
 
             result = subprocess.run(
                 [
@@ -69,8 +67,6 @@ class CropImagesTests(unittest.TestCase):
                     str(SCRIPT_PATH),
                     "--folder",
                     str(folder),
-                    "--movie",
-                    "Jalsa",
                     "--keep-originals",
                 ],
                 capture_output=True,
@@ -79,23 +75,21 @@ class CropImagesTests(unittest.TestCase):
             )
 
             self.assertIn("Processed folder:", result.stdout)
-            self.assertTrue((folder / "meta-data.json").exists())
 
     def test_process_folder_rejects_missing_folder(self) -> None:
         missing = ROOT / "does-not-exist"
         with self.assertRaises(FileNotFoundError):
-            process_folder(missing, "Jalsa", keep_originals=False)
+            process_folder(missing, keep_originals=False)
 
-    def test_process_folder_rejects_wrong_image_count(self) -> None:
+    def test_process_folder_rejects_when_no_source_images_exist(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             folder = Path(temp_dir)
-            copied = self.copy_examples(folder)
-            copied[0].unlink()
+            (folder / "ignore-cropped.jpg").write_bytes(b"not-an-image")
 
             with self.assertRaises(RuntimeError) as context:
-                process_folder(folder, "Jalsa", keep_originals=False)
+                process_folder(folder, keep_originals=False)
 
-            self.assertIn("Expected exactly 5 source images", str(context.exception))
+            self.assertIn("No source images found", str(context.exception))
 
     def test_cli_script_returns_error_for_missing_folder(self) -> None:
         missing = ROOT / "does-not-exist"
@@ -106,8 +100,6 @@ class CropImagesTests(unittest.TestCase):
                 str(SCRIPT_PATH),
                 "--folder",
                 str(missing),
-                "--movie",
-                "Jalsa",
             ],
             capture_output=True,
             text=True,

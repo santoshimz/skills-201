@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import os
 import sys
 from io import BytesIO
@@ -106,6 +107,13 @@ def list_folder_images(folder: Path) -> list[Path]:
     )
 
 
+def filter_source_images(paths: Iterable[Path], source_glob: str | None = None) -> list[Path]:
+    selected = list(paths)
+    if source_glob is None:
+        return selected
+    return [path for path in selected if fnmatch.fnmatch(path.name, source_glob)]
+
+
 def collect_generated_images(response) -> list[tuple[bytes, str]]:
     generated: list[tuple[bytes, str]] = []
     for candidate in getattr(response, "candidates", []) or []:
@@ -190,6 +198,7 @@ def colorize_folder(
     client=None,
     env_path: Path | None = None,
     source_paths: Iterable[Path] | None = None,
+    source_glob: str | None = None,
 ) -> list[Path]:
     if not folder.exists():
         raise FileNotFoundError(f"Folder does not exist: {folder}")
@@ -197,6 +206,7 @@ def colorize_folder(
         raise NotADirectoryError(f"Path is not a directory: {folder}")
 
     selected_sources = list(source_paths) if source_paths is not None else list_folder_images(folder)
+    selected_sources = filter_source_images(selected_sources, source_glob=source_glob)
     if not selected_sources:
         raise RuntimeError("No source images found to colorize.")
 
@@ -238,6 +248,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional output directory. Defaults to the source folder.",
     )
     parser.add_argument(
+        "--glob",
+        dest="source_glob",
+        help="Optional filename glob used to select which images in the folder to colorize.",
+    )
+    parser.add_argument(
         "--overwrite",
         action="store_true",
         help="Overwrite filenames in the target directory instead of writing *-colorized.jpg.",
@@ -270,6 +285,7 @@ def main() -> int:
         written_paths = colorize_folder(
             folder,
             output_dir=output_dir,
+            source_glob=args.source_glob,
             overwrite=args.overwrite,
             prompt=args.prompt,
             model=args.model,

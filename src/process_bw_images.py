@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Legacy convenience CLI for the crop-then-colorize flow outside the skill system."""
 from __future__ import annotations
 
 import argparse
@@ -9,9 +10,8 @@ from colorize_images import DEFAULT_IMAGE_MODEL, DEFAULT_PROMPT, colorize_folder
 from crop_images import process_folder as crop_folder
 
 
-def process_black_and_white_folder(
+def process_black_and_white_images(
     folder: Path,
-    movie_name: str,
     *,
     keep_originals: bool,
     preserve_black_and_white: bool,
@@ -19,8 +19,7 @@ def process_black_and_white_folder(
     model: str | None = None,
     env_path: Path | None = None,
 ) -> list[Path]:
-    crop_folder(folder, movie_name, keep_originals=keep_originals)
-    source_paths = [folder / f"{index}.jpg" for index in range(1, 6)]
+    source_paths = crop_folder(folder, keep_originals=keep_originals)
     output_dir = folder / "colorized" if preserve_black_and_white else folder
     overwrite = not preserve_black_and_white
     return colorize_folder(
@@ -36,14 +35,13 @@ def process_black_and_white_folder(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Crop a folder of screenshots and colorize the resulting images with Gemini."
+        description="Legacy convenience CLI: prefer composing crop_images.py and colorize_images.py via the skills."
     )
-    parser.add_argument("--folder", required=True, type=Path, help="Folder containing source screenshots.")
-    parser.add_argument("--movie", required=True, help="Movie title to store in meta-data.json.")
+    parser.add_argument("--folder", required=True, type=Path, help="Folder containing source images.")
     parser.add_argument(
         "--keep-originals",
         action="store_true",
-        help="Keep the original screenshots after cropping succeeds.",
+        help="Keep the original source images after cropping succeeds.",
     )
     parser.add_argument(
         "--preserve-black-and-white",
@@ -74,9 +72,8 @@ def main() -> int:
     try:
         folder = args.folder.expanduser().resolve()
         env_path = args.env_file.expanduser().resolve() if args.env_file else None
-        written_paths = process_black_and_white_folder(
+        written_paths = process_black_and_white_images(
             folder,
-            args.movie,
             keep_originals=args.keep_originals,
             preserve_black_and_white=args.preserve_black_and_white,
             prompt=args.prompt,

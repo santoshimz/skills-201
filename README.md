@@ -1,5 +1,7 @@
 # Skills 201: Image Workflow Composition
 
+Skills 201 Crop and Colorize Images doodle
+
 [Python 3.10+](https://www.python.org/downloads/)
 [License: MIT](./LICENSE)
 
@@ -7,19 +9,19 @@
 
 This project demonstrates three practical layers:
 
-- `cropping-images`: crop screenshots to the visible video frame
+- `cropping-images`: crop images to the visible subject or frame
 - `colorize-images`: colorize black and white images with the Gemini image API
-- `process-bw-folder`: run crop first, then colorize the results
+- `process-bw-images`: a meta-skill that chains `cropping-images` and `colorize-images`
 
 ## Project Anatomy
 
 - `.agents/skills/.../SKILL.md` explains when each skill should be used
 - `.cursor/skills/.../SKILL.md` makes the same skills easy to reuse in Cursor projects
-- `src/crop_images.py` handles the local crop workflow
+- `src/crop_images.py` handles cropping one or more local images in a folder
 - `src/colorize_images.py` handles Gemini-powered image colorization
-- `src/process_bw_folder.py` composes the two skills into one CLI
+- `src/process_bw_images.py` remains as a legacy convenience wrapper for non-skill usage
 - `requirements.txt` lists the runtime dependencies
-- `pyproject.toml` makes the workflows installable as CLIs
+- `pyproject.toml` exposes the primary crop and colorize CLIs
 
 ## Quick Start
 
@@ -52,17 +54,33 @@ GEMINI_API_KEY=your_api_key_here
 GEMINI_IMAGE_MODEL=gemini-3.1-flash-image-preview
 ```
 
-`src/colorize_images.py` and `src/process_bw_folder.py` automatically read `GEMINI_API_KEY` from the environment, an explicit `--env-file`, `.env` in the current working directory, or `.env` in the repo root.
+`src/colorize_images.py` and the chained workflow commands automatically read `GEMINI_API_KEY` from the environment, an explicit `--env-file`, `.env` in the current working directory, or `.env` in the repo root.
 
 The default image model is `gemini-3.1-flash-image-preview`, the current Gemini 3.1 Flash Image preview model.
+
+## Before And After
+
+Original black and white source image:
+
+Black and white source image
+
+Cropped intermediate output:
+
+Cropped black and white image
+
+Final cropped and colorized output:
+
+Cropped and colorized image
 
 ## Example Workflows
 
 Crop only:
 
 ```bash
-python3 src/crop_images.py --folder examples --movie "Movie Title" --keep-originals
+python3 src/crop_images.py --folder examples --keep-originals
 ```
+
+This writes cropped JPG copies such as `black and white-cropped.jpg` next to the originals.
 
 Colorize existing images into a separate folder:
 
@@ -70,17 +88,29 @@ Colorize existing images into a separate folder:
 python3 src/colorize_images.py --folder examples --output-dir examples/colorized
 ```
 
-Run crop and then colorize in place:
+Colorize only the cropped outputs in a separate folder:
 
 ```bash
-python3 src/process_bw_folder.py --folder examples --movie "Movie Title" --keep-originals
+python3 src/colorize_images.py --folder examples --glob "*-cropped.jpg" --output-dir examples/colorized
 ```
 
-Preserve the black and white cropped files and write colored copies to `colorized/`:
+Run crop and then colorize by chaining the lower-level workflows:
 
 ```bash
-python3 src/process_bw_folder.py --folder examples --movie "Movie Title" --keep-originals --preserve-black-and-white
+python3 src/crop_images.py --folder examples --keep-originals
+python3 src/colorize_images.py --folder examples --glob "*-cropped.jpg" --output-dir examples/colorized
 ```
+
+`src/process_bw_images.py` remains available as a legacy convenience CLI, but the primary `Skills 201` path is explicit composition of the lower-level skills.
+
+## Primary Path
+
+For this repo, the preferred end-to-end workflow is:
+
+1. apply `cropping-images`
+2. apply `colorize-images` to the `*-cropped.jpg` outputs
+
+The installed CLI surface reflects that preference by exposing `crop-images` and `colorize-images` as the main commands.
 
 ## Skill Usage
 
@@ -119,13 +149,13 @@ Colorize the black and white image in `examples/black and white.png` and save th
 For folder-based workflows:
 
 ```text
-Use the images in `examples` as the source folder, apply the crop workflow, then colorize the results and keep the originals.
+Use the images in `examples` as the source folder, apply the crop workflow to every source image, then colorize the results and keep the originals.
 ```
 
 This is the main `Skills 201` idea:
 
 - The user speaks naturally
-- The skills know the rules
+- The skills can be composed
 - The output stays consistent
 
 ## Security Notes

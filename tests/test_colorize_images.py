@@ -15,7 +15,7 @@ SCRIPT_PATH = SRC / "colorize_images.py"
 
 sys.path.insert(0, str(SRC))
 
-from colorize_images import colorize_folder, colorize_image, resolve_gemini_api_key  # noqa: E402
+from colorize_images import colorize_folder, colorize_image, filter_source_images, resolve_gemini_api_key  # noqa: E402
 
 
 def make_png_bytes(color: tuple[int, int, int]) -> bytes:
@@ -126,6 +126,41 @@ class ColorizeImagesTests(unittest.TestCase):
             self.assertEqual(written[1].name, "2-colorized.jpg")
             self.assertTrue((output_dir / "1-colorized.jpg").exists())
             self.assertTrue((output_dir / "2-colorized.jpg").exists())
+
+    def test_filter_source_images_can_limit_to_cropped_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            folder = Path(temp_dir)
+            original = self.make_source_image(folder, "photo.jpg")
+            cropped = self.make_source_image(folder, "photo-cropped.jpg")
+
+            selected = filter_source_images([original, cropped], source_glob="*-cropped.jpg")
+
+            self.assertEqual(selected, [cropped])
+
+    def test_colorize_folder_can_filter_by_glob(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            folder = Path(temp_dir)
+            output_dir = folder / "colorized"
+            self.make_source_image(folder, "photo.jpg")
+            self.make_source_image(folder, "photo-cropped.jpg")
+            response = FakeResponse([
+                FakePart(inline_data=FakeInlineData(make_png_bytes((25, 50, 200))))
+            ])
+            client = FakeClient(response)
+
+            written = colorize_folder(
+                folder,
+                output_dir=output_dir,
+                overwrite=False,
+                client=client,
+                api_key="test-key",
+                source_glob="*-cropped.jpg",
+            )
+
+            self.assertEqual(len(written), 1)
+            self.assertEqual(written[0].name, "photo-cropped-colorized.jpg")
+            self.assertTrue((output_dir / "photo-cropped-colorized.jpg").exists())
+            self.assertFalse((output_dir / "photo-colorized.jpg").exists())
 
     def test_cli_reports_missing_api_key(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

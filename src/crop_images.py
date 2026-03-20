@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from pathlib import Path
 from typing import Iterable
@@ -373,36 +372,37 @@ def list_source_images(folder: Path) -> list[Path]:
     ]
 
     screenshot_images = sorted(
-        [path for path in all_images if path.name.startswith("Screenshot")],
+        [
+            path
+            for path in all_images
+            if path.name.startswith("Screenshot") and not is_generated_image(path)
+        ],
         key=lambda path: path.name.lower(),
     )
     if screenshot_images:
         return screenshot_images
 
-    reserved_names = {f"{index}.jpg" for index in range(1, 6)}
     return sorted(
         [
             path
             for path in all_images
-            if path.name.lower() not in reserved_names
+            if not is_generated_image(path)
         ],
         key=lambda path: path.name.lower(),
     )
 
 
-def write_metadata(folder: Path, movie_name: str) -> None:
-    payload = {
-        "movie": movie_name,
-        "contributor": "",
-        "twitterId": "",
-    }
-    metadata_path = folder / "meta-data.json"
-    metadata_path.write_text(f"{json.dumps(payload, indent=4)}\n", encoding="utf-8")
+def is_generated_image(path: Path) -> bool:
+    stem = path.stem.lower()
+    return stem.endswith("-cropped") or stem.endswith("-colorized")
 
 
-def validate_outputs(folder: Path) -> None:
-    for index in range(1, 6):
-        path = folder / f"{index}.jpg"
+def make_output_path(source_path: Path) -> Path:
+    return source_path.with_name(f"{source_path.stem}-cropped.jpg")
+
+
+def validate_outputs(paths: Iterable[Path]) -> None:
+    for path in paths:
         if not path.exists():
             raise RuntimeError(f"Missing output file: {path.name}")
         with Image.open(path) as image:
@@ -429,70 +429,58 @@ def validate_outputs(folder: Path) -> None:
                     f"Validation failed for {path.name}: leftover red seek bar detected."
                 )
 
-    metadata_path = folder / "meta-data.json"
-    if not metadata_path.exists():
-        raise RuntimeError("Missing output file: meta-data.json")
 
-
-def process_folder(folder: Path, movie_name: str, keep_originals: bool) -> None:
+def process_folder(folder: Path, keep_originals: bool) -> list[Path]:
     if not folder.exists():
         raise FileNotFoundError(f"Folder does not exist: {folder}")
     if not folder.is_dir():
         raise NotADirectoryError(f"Path is not a directory: {folder}")
 
     source_images = list_source_images(folder)
-    if len(source_images) != 5:
-        names = ", ".join(path.name for path in source_images) or "none"
-        raise RuntimeError(
-            "Expected exactly 5 source images, found "
-            f"{len(source_images)}: {names}"
-        )
+    if not source_images:
+        raise RuntimeError(f"No source images found in folder: {folder}")
 
-    written_files: list[str] = []
+    written_paths: list[Path] = []
 
-    for index, source_path in enumerate(source_images, start=1):
-        output_path = folder / f"{index}.jpg"
+    for source_path in source_images:
+        output_path = make_output_path(source_path)
         with Image.open(source_path) as image:
             crop_box = detect_crop_box(image)
             validate_crop_box(image.convert("RGB"), crop_box)
             cropped = image.convert("RGB").crop(crop_box)
             cropped.save(output_path, format="JPEG", quality=95, optimize=True)
-        written_files.append(output_path.name)
+        written_paths.append(output_path)
 
-    write_metadata(folder, movie_name)
-    validate_outputs(folder)
+    validate_outputs(written_paths)
 
     if not keep_originals:
         for source_path in source_images:
             source_path.unlink()
 
     print(f"Processed folder: {folder}")
-    print(f"Created files: {', '.join(written_files)}, meta-data.json")
+    print("Created files: " + ", ".join(path.name for path in written_paths))
     if keep_originals:
-        print("Original screenshots kept.")
+        print("Original source images kept.")
     else:
-        print("Original screenshots deleted after validation.")
+        print("Original source images deleted after validation.")
+
+    return written_paths
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Convert 5 local screenshots into 1.jpg to 5.jpg and meta-data.json."
+        description="Crop supported images in a folder into visible-frame JPG copies."
     )
     parser.add_argument(
         "--folder",
         required=True,
         type=Path,
-        help="Folder containing the 5 local screenshots.",
-    )
-    parser.add_argument(
-        "--movie",
-        required=True,
-        help="Movie title to store in meta-data.json.",
+        help="Folder containing source images to crop.",
     )
     parser.add_argument(
         "--keep-originals",
         action="store_true",
-        help="Keep the original source screenshots after the outputs are validated.",
+        help="Keep the original source images after the outputs are validated.",
     )
     return parser
 
@@ -504,7 +492,6 @@ def main() -> int:
     try:
         process_folder(
             folder=args.folder.expanduser().resolve(),
-            movie_name=args.movie,
             keep_originals=args.keep_originals,
         )
     except Exception as exc:  # noqa: BLE001

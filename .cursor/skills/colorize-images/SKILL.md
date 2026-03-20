@@ -21,13 +21,19 @@ Apply this skill when the user wants to turn black and white photos into color i
 Colorize images into a separate folder:
 
 ```bash
-python3 src/colorize_images.py --folder ppc/1402 --output-dir ppc/1402/colorized
+python3 src/colorize_images.py --folder examples --output-dir examples/colorized
+```
+
+Colorize only a selected subset of filenames in the folder:
+
+```bash
+python3 src/colorize_images.py --folder examples --glob "*-cropped.jpg" --output-dir examples/colorized
 ```
 
 Replace the files in place:
 
 ```bash
-python3 src/colorize_images.py --folder ppc/1402 --overwrite
+python3 src/colorize_images.py --folder examples --overwrite
 ```
 
 ## Guardrails

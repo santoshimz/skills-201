@@ -24,11 +24,10 @@ dev = ["ruff"]
 [project.scripts]
 crop-images = "crop_images:main"
 colorize-images = "colorize_images:main"
-process-bw-folder = "process_bw_folder:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
-py-modules = ["crop_images", "colorize_images", "process_bw_folder"]
+py-modules = ["crop_images", "colorize_images", "process_bw_images"]
 
 [tool.ruff]
 line-length = 100
