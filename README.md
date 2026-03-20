@@ -1,6 +1,6 @@
 # Skills 201: Image Workflow Composition
 
-Skills 201 Crop and Colorize Images doodle
+![Skills 201 Crop and Colorize Images doodle](examples/readme-assets/skills-201-crop-and-colorize-doodle.png)
 
 [Python 3.10+](https://www.python.org/downloads/)
 [License: MIT](./LICENSE)
