@@ -1,4 +1,4 @@
-# Skills 201: Image Workflow Composition
+# Skills 201: Image workflow composition
 
 ![Skills 201 Crop and Colorize Images doodle](examples/readme-assets/skills-201-crop-and-colorize-doodle.png)
 
@@ -13,7 +13,7 @@ This project demonstrates three practical layers:
 - `colorize-images`: colorize black and white images with the Gemini image API
 - `process-bw-images`: a meta-skill that chains `cropping-images` and `colorize-images`
 
-## Project Anatomy
+## Project anatomy
 
 - `.agents/skills/.../SKILL.md` explains when each skill should be used
 - `.cursor/skills/.../SKILL.md` makes the same skills easy to reuse in Cursor projects
@@ -23,7 +23,7 @@ This project demonstrates three practical layers:
 - `requirements.txt` lists the runtime dependencies
 - `pyproject.toml` exposes the primary crop and colorize CLIs
 
-## Quick Start
+## Quick start
 
 ### Install
 
@@ -58,21 +58,21 @@ GEMINI_IMAGE_MODEL=gemini-3.1-flash-image-preview
 
 The default image model is `gemini-3.1-flash-image-preview`, the current Gemini 3.1 Flash Image preview model.
 
-## Before And After
+## Before and after
 
 Original black and white source image:
 
-Black and white source image
+![Black and white source image](examples/black%20and%20white.png)
 
 Cropped intermediate output:
 
-Cropped black and white image
+![Cropped black and white image](examples/black%20and%20white-cropped.jpg)
 
 Final cropped and colorized output:
 
-Cropped and colorized image
+![Cropped and colorized image](examples/colorized/black%20and%20white-cropped-colorized.jpg)
 
-## Example Workflows
+## Example workflows
 
 Crop only:
 
@@ -103,7 +103,7 @@ python3 src/colorize_images.py --folder examples --glob "*-cropped.jpg" --output
 
 `src/process_bw_images.py` remains available as a legacy convenience CLI, but the primary `Skills 201` path is explicit composition of the lower-level skills.
 
-## Primary Path
+## Primary path
 
 For this repo, the preferred end-to-end workflow is:
 
@@ -112,7 +112,7 @@ For this repo, the preferred end-to-end workflow is:
 
 The installed CLI surface reflects that preference by exposing `crop-images` and `colorize-images` as the main commands.
 
-## Skill Usage
+## Skill usage
 
 If this is used as an agent skill, the user does not need to know the Python command.
 
@@ -158,7 +158,7 @@ This is the main `Skills 201` idea:
 - The skills can be composed
 - The output stays consistent
 
-## Security Notes
+## Security notes
 
 - Never commit `.env`.
 - This repo includes `.env.example` only.
@@ -166,7 +166,7 @@ This is the main `Skills 201` idea:
 - The code never prints raw auth headers or API keys.
 - Tests mock Gemini responses and do not make live API calls.
 
-## Run Quality Checks
+## Run quality checks
 
 #### macOS / Linux
 
@@ -182,6 +182,6 @@ python -m ruff check .
 python -m unittest discover -s tests -v
 ```
 
-## Reusable Skills
+## Reusable skills
 
 This repo also includes reusable skills for flat Python CLI repo structure, fixture-based `unittest` patterns, and secure Gemini image client integration.
